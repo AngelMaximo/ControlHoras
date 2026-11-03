@@ -1,0 +1,45 @@
+.form-field {
+	display: grid;
+	gap: 8px;
+	margin-bottom: 19px;
+}
+
+.form-field label {
+	color: var(--color-ink);
+	font-size: 0.88rem;
+	font-weight: 650;
+}
+
+.form-field input,
+.form-field select {
+	width: 100%;
+	min-height: 48px;
+	padding: 0 13px;
+	border: 1px solid #cbd6ce;
+	border-radius: 5px;
+	background: #ffffff;
+	color: var(--color-ink);
+	font: inherit;
+	font-size: 0.94rem;
+	transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.form-field input::placeholder {
+	color: #8b9790;
+}
+
+.form-field input:hover,
+.form-field select:hover {
+	border-color: #8ba898;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+	border-color: var(--color-green);
+	box-shadow: 0 0 0 3px rgb(36 108 81 / 12%);
+	outline: none;
+}
+
+.form-field select:invalid {
+	color: #68756f;
+}
