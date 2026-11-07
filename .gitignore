@@ -71,7 +71,12 @@ dist/
 build/
 
 # ==========================================
-# 0. APUNTES PERSONALES
+# 10. APUNTES PERSONALES
 # ==========================================
 estructuraServer.txt
 estructura.txt
+
+# ==========================================
+# 11. ARCHIVO DE PRUEBAS
+# ==========================================
+/server/database/test.py

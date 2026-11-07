@@ -1,8 +1,31 @@
 from server.database.connection import databases_connection
 import psycopg
 
+# Valores permitidos para el tipo de empleado.
+VALID_EMPLOYEE_TYPES = ("permanent","temporary")
+
+def validate_employee_type(employe_type):
+    """valida el tipo de empleado"""
+
+    if employe_type not in VALID_EMPLOYEE_TYPES:
+        raise ValueError(
+            "El tipo de empleado debe ser 'permanent' o 'temporary'"
+        )
+
+def validate_active(active):
+    """Valida que active sea realmente booleano"""
+
+    if type(active) is not bool:
+        raise ValueError (
+            "El estado active debe ser True o False"
+        )
+
+
 def insert_employees(name, employee_type):
-    
+    """Registra un empleado y devuelve su ID"""
+
+    validate_employee_type(employee_type)
+
     conn = databases_connection()
     try:
         with conn.cursor() as cursor:
@@ -14,20 +37,23 @@ def insert_employees(name, employee_type):
             (name, employee_type))
 
             employee_id = cursor.fetchone()[0]
+
         conn.commit()
-        print("Usuario insertado correctamente")
         return employee_id
     
     
-    except psycopg.Error as e:
+    except psycopg.Error:
         conn.rollback()#para deshacer la transacción en caso de error
-        print(f"Error al insertar usuario: {e}")
         raise
     finally:
         conn.close()
 
 
 def update_employees(employee_id,employee_type,active):
+    """Actualiza el tipo y estado de un empleado"""
+
+    validate_employee_type(employee_type)
+    validate_active(active)
     
     conn = databases_connection()
     
@@ -36,48 +62,73 @@ def update_employees(employee_id,employee_type,active):
             cursor.execute("""UPDATE employees 
             SET employee_type = %s, 
             active = %s 
-            WHERE id = %s;
+            WHERE id = %s
+            RETURNING id;
             """, 
             (employee_type,active,employee_id)
             )
         
-            if cursor.rowcount == 1:
-                conn.commit()
-                print("Registro actualizado correctamente")
-            else:
-                conn.rollback()
-                print("No se encontró el empleado con el ID proporcionado")
+            employee = cursor.fetchone()
+
+        if employee is None:
+            conn.rollback
+            return False
+
+        conn.commit()
+        return True
             
-    except psycopg.Error as e:
+    except psycopg.Error:
         conn.rollback()
-        print(f"Error al actualizar el registro: {e}")
         raise
+
     finally:
         conn.close()
 
 def deactivate_employee(employee_id):
+    """
+    Desactiva un empleado y distingue estos resultados:
+    - deactivated
+    - already_inactive
+    - not_found
+    """
    
     conn = databases_connection()
         
     try:
         with conn.cursor() as cursor:
+            # Intentar desactivar al empleado activo.
             cursor.execute( """
             UPDATE employees
             SET active = FALSE
-            WHERE id = %s;
+            WHERE id = %s
+                AND active = TRUE
+            RETURNING id;
             """,
             (employee_id,))
 
-            if cursor.rowcount == 1:
-                conn.commit()#Guardar cambios
-                print("Registro actualizado correctamente")
-            else:
-                conn.rollback()
-                print("No se encontró el empleado con el ID proporcionado")
+            employee = cursor.fetchone()
 
-    except psycopg.Error as e:
+            if employee is not None:
+                conn.commit()
+                return "deactivated"
+            
+            # Si no se actualizó, comprobar si el ID existe.
+            cursor.execute("""
+                SELECT active 
+                FROM employees
+                WHERE id = %s;
+            """,(employee_id,))
+
+            employee = cursor.fetchone()
         conn.rollback()
-        print(f"Error al actualizar el registro: {e}")
+
+        if employee is None:
+            return "not_found"
+        
+        return "already_inactive"
+
+    except psycopg.Error:
+        conn.rollback()
         raise
 
     finally:
@@ -85,6 +136,7 @@ def deactivate_employee(employee_id):
 
 
 def consult_employees(employee_id):
+    """Consulta un empleado por su ID"""
 
     conn = databases_connection()
 
@@ -99,21 +151,16 @@ def consult_employees(employee_id):
     
             registro = cursor.fetchone()
 
-            if registro is None:
-                print("No se encontró el empleado")
-            else:
-                print(registro)
+        return registro
 
-            return registro
-
-    except psycopg.Error as e:
-        print(f"Error al consultar el registro: {e}") 
+    except psycopg.Error:
         raise
 
     finally:
         conn.close()
 
 def get_employees():
+    """Devuelve todos los empleados activos"""
 
     conn = databases_connection()
 
@@ -128,17 +175,10 @@ def get_employees():
     
             registros = cursor.fetchall()#Obtiene todas las filas encontradas.
 
-            if not registros:#Comprueba si la lista está vacía.
-                print("No se encontraron empleados activos")
-            else:
-                for registro in registros:
-                    print(registro)
-
             return registros#Devuelve la lista completa a quien llamó la función.|
 
 
-    except psycopg.Error as e:
-        print(f"Error al consultar el registro: {e}") 
+    except psycopg.Error:
         raise
 
     finally:
