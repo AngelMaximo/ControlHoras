@@ -1,5 +1,6 @@
 from server.database.connection import databases_connection
 import psycopg
+import re
 
 # Valores permitidos para el tipo de empleado.
 VALID_EMPLOYEE_TYPES = ("permanent","temporary")
@@ -20,9 +21,40 @@ def validate_active(active):
             "El estado active debe ser True o False"
         )
 
+def validate_employee_name(name):
+    # 1. Comprobar que sea una cadena de texto
+    if not isinstance(name,str):
+        raise TypeError(
+            "El nombre debe ser una cadena de texto"
+            )
+    
+    # 2. Eliminar espacios al principio y al final
+    name = name.strip()
 
+    # 3. Comprobar que no esté vacío
+    if not name:
+        raise ValueError(
+            "EL nombre no puede estar vacio"
+        )
+    # 4. Comprobar que no supere los 100 caracteres
+    if len(name)>100:
+        raise ValueError(
+            "El nombre no puede superar los 100 caracteres"
+        )
+    
+    # 5. Aceptar únicamente letras y espacios entre palabras
+    if not re.fullmatch(r"[^\W\d_]+(?: +[^\W\d_]+)*", name):
+        raise ValueError(
+            "El nombre solo puede contener letras y espacios"
+        )
+    
+    return name
+
+    
 def insert_employees(name, employee_type):
     """Registra un empleado y devuelve su ID"""
+
+    name = validate_employee_name(name)
 
     validate_employee_type(employee_type)
 
