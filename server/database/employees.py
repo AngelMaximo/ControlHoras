@@ -5,10 +5,10 @@ import re
 # Valores permitidos para el tipo de empleado.
 VALID_EMPLOYEE_TYPES = ("permanent","temporary")
 
-def validate_employee_type(employe_type):
+def validate_employee_type(employee_type):
     """valida el tipo de empleado"""
 
-    if employe_type not in VALID_EMPLOYEE_TYPES:
+    if employee_type not in VALID_EMPLOYEE_TYPES:
         raise ValueError(
             "El tipo de empleado debe ser 'permanent' o 'temporary'"
         )
