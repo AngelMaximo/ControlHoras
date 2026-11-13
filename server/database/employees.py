@@ -81,9 +81,11 @@ def insert_employees(name, employee_type):
         conn.close()
 
 
-def update_employees(employee_id,employee_type,active):
+def update_employees(employee_id, name, employee_type, active):
     """Actualiza el tipo y estado de un empleado"""
 
+    #Validar datos antes de conectar con PostgreSQL
+    name = validate_employee_name(name)
     validate_employee_type(employee_type)
     validate_active(active)
     
@@ -91,25 +93,57 @@ def update_employees(employee_id,employee_type,active):
     
     try:
         with conn.cursor() as cursor:
-            cursor.execute("""UPDATE employees 
-            SET employee_type = %s, 
-            active = %s 
+
+            #Comprobar que el empleado exista y bloquear su registro
+            cursor.execute("""
+                SELECT id 
+                FROM employees
+                WHERE id = %s
+                FOR UPDATE;
+            """,(employee_id,))
+
+            employee = cursor.fetchone()
+            
+            if employee is None:
+                conn.rollback()
+                return False
+            
+            #Si intenta desactivar, comprobar que no tenga un jornada
+            #laboral abierta
+            if active is False:
+                cursor.execute(""" 
+                    SELECT EXISTS(
+                        SELECT 1
+                        FROM workdays
+                        WHERE employee_id = %s
+                        AND clock_out IS NULL
+                    );
+                """,(employee_id,))
+
+                has_open_worday=cursor.fetchone()[0]
+
+                if has_open_worday:
+                    raise ValueError(
+                        "No No se puede desactivar un empleado "
+                        "que tiene una jornada laboral abierta."
+                    )
+            
+            #Actualiza los datos del empleado
+            cursor.execute("""
+            UPDATE employees 
+            SET name = %s,
+                employee_type = %s, 
+                active = %s 
             WHERE id = %s
             RETURNING id;
-            """, 
-            (employee_type,active,employee_id)
-            )
+            """, (name,employee_type,active,employee_id))
         
-            employee = cursor.fetchone()
-
-        if employee is None:
-            conn.rollback
-            return False
+            updated_employee = cursor.fetchone()
 
         conn.commit()
         return True
             
-    except psycopg.Error:
+    except (psycopg.Error,ValueError):
         conn.rollback()
         raise
 
