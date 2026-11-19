@@ -156,44 +156,69 @@ def deactivate_employee(employee_id):
     - deactivated
     - already_inactive
     - not_found
+
+    Impide desactivar empleados con una jornada abierta.
     """
    
     conn = databases_connection()
         
     try:
         with conn.cursor() as cursor:
-            # Intentar desactivar al empleado activo.
+
+            # Comprobar que el empleado exista y bloquear su registro
             cursor.execute( """
-            UPDATE employees
-            SET active = FALSE
+            SELECT active
+            FROM employees
             WHERE id = %s
-                AND active = TRUE
-            RETURNING id;
+            FOR UPDATE;
             """,
             (employee_id,))
 
             employee = cursor.fetchone()
 
-            if employee is not None:
+            if employee is None:
                 conn.commit()
-                return "deactivated"
-            
-            # Si no se actualizó, comprobar si el ID existe.
+                return "not_found"
+
+            #Comprobar que el empleado ya está desactivado
+            if employee[0] is False:
+                conn.commit()
+                return "already_inactive"
+
+            #Comprobar si el empleado tiene una jornada laboral abierta
             cursor.execute("""
-                SELECT active 
-                FROM employees
-                WHERE id = %s;
-            """,(employee_id,))
+            SELECT EXISTS(
+                SELECT 1
+                FROM workdays
+                WHERE employee_id = %s
+                    AND clock_out IS NULL
+                    );
+                    """,(employee_id,)                
+            )
+
+            has_open_worday=cursor.fetchone()[0]
+
+            if has_open_worday:
+                raise ValueError(
+                    "No se puede desactivar un empleado"
+                    "que tiene una jornada laboral abierta."
+                )
+
+            #Desactivar al empleado
+            cursor.execute(
+                """UPDATE employees
+                SET active = FALSE
+                WHERE id = %s
+                RETURNING id;
+                """,(employee_id,)
+            )
 
             employee = cursor.fetchone()
-        conn.rollback()
 
-        if employee is None:
-            return "not_found"
-        
-        return "already_inactive"
+        conn.commit()
+        return "desactivated"
 
-    except psycopg.Error:
+    except (psycopg.Error,ValueError):
         conn.rollback()
         raise
 
