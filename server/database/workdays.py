@@ -11,16 +11,18 @@ def employee_entrance(employee_id):
         #  Validar que el empleado exista y esté activo.
         with conn.cursor() as cursor:
             cursor.execute("""
-                SELECT id
+                SELECT id, active
                 FROM employees
                 WHERE id = %s
-                AND active = TRUE;
+                FOR UPDATE;
             """, (employee_id,))
 
             employee = cursor.fetchone()
 
-            if employee is None:
-                raise ValueError("El empleado no existe o está inactivo")
+            if employee is None or employee[1] is False:
+                raise ValueError(
+                    "El empleado no existe o está inactivo"
+                    )
         
             uuid_id = uuid.uuid4()
 
