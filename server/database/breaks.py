@@ -48,14 +48,12 @@ def start_break(workday_id):
             break_id = cursor.fetchone()[0] #extrae el primer elemento de esa fila: el UUID del descanso.
         
         conn.commit()
-        
-        print("Descanso iniciado correctamente")
         return break_id
 
-    except (psycopg.Error, ValueError) as e:
+    except (psycopg.Error, ValueError):
         conn.rollback()
-        print(f"Error al registrar el desacanso del empelado: {e}" )
         raise
+    
     finally:
         conn.close()
 
@@ -84,13 +82,11 @@ def end_break(break_id):
                 )
         
         conn.commit()
-        
-        print("Descanso finalizado correctamente")
         return active_break[0]
 
-    except (psycopg.Error, ValueError) as e:
+    except (psycopg.Error, ValueError):
         conn.rollback()
-        print(f"Error al registrar el desacanso del empelado: {e}" )
         raise
+    
     finally:
         conn.close()

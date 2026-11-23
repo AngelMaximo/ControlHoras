@@ -38,14 +38,12 @@ def employee_entrance(employee_id):
             workday_id = cursor.fetchone()[0]
 
         conn.commit()
-
-        print("Entrada registrada correctamente")
         return workday_id
 
-    except (psycopg.Error, ValueError) as e:
+    except (psycopg.Error, ValueError):
         conn.rollback()
-        print(f"Error al registrar la entrada del empelado: {e}" )
         raise
+
     finally:
         conn.close()
 
@@ -103,12 +101,11 @@ def employee_exit(workday_id):
 
             
         conn.commit()
-
-        print("Salida registrada correctamente")
         return workday_id
-    except (psycopg.Error, ValueError) as e:
+    
+    except (psycopg.Error, ValueError):
         conn.rollback()
-        print(f"Error al registrar la salida: {e}" )
         raise
+    
     finally:
         conn.close()
